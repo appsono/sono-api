@@ -764,7 +764,7 @@ Authorization: Bearer <access_token>
 
 ---
 
-## Rate Limits (Updated)
+## Rate Limits
 
 | Endpoint | Limit |
 |----------|-------|
