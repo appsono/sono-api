@@ -1,0 +1,18 @@
+line-length = 100
+
+#ignore migrations and alembic entirely
+exclude = [
+  "alembic",
+]
+
+#start strict-ish
+select = [
+  "E",
+  "F",
+]
+
+ignore = [
+  "E712", #allow == True / == False for SQLAlchemy
+  "E722", #allow bare except (for now)
+  "F841", #unused variables (often intentional in try/except)
+]
