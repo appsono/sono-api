@@ -1,0 +1,15 @@
+fastapi
+bcrypt==4.0.1
+uvicorn[standard]
+sqlalchemy
+psycopg2-binary
+pydantic[email]
+pydantic-settings
+passlib[bcrypt]
+passlib
+alembic
+python-jose[cryptography]
+python-multipart
+minio
+slowapi
+apscheduler>=3.10.0
