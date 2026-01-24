@@ -68,7 +68,7 @@ def get_current_active_superuser(
 def create_access_token(data: dict) -> Tuple[str, str, datetime]:
     """create access token"""
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     jti = str(uuid.uuid4())
     to_encode.update({
         "exp": expire,
@@ -96,7 +96,7 @@ def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) 
 
 def audit_log(message: str):
     from datetime import datetime
-    print(f"[AUDIT] {datetime.utcnow().isoformat()} - {message}")
+    print(f"[AUDIT] {datetime.now(timezone.utc).isoformat()} - {message}")
 
 def authenticate_user(username: str, password: str, db: Session):
     user = crud.get_user_by_email(db, username)

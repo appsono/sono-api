@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_, func
 from . import models, schemas
 from typing import Optional, List, Tuple
-from core.hashing import Hasher
+from app.core.hashing import Hasher
 
 # ============= USER CRUD =============
 
@@ -243,7 +243,7 @@ def create_collection(db: Session, collection: schemas.CollectionCreate, owner_i
 def update_collection(db: Session, collection_id: int, collection_update: schemas.CollectionUpdate) -> Optional[models.Collection]:
     db_collection = db.query(models.Collection).filter(models.Collection.id == collection_id).first()
     if db_collection:
-        update_dict = collection_update.dict(exclude_unset=True)
+        update_dict = collection_update.model_dump(exclude_unset=True)
         for key, value in update_dict.items():
             setattr(db_collection, key, value)
         db.commit()
@@ -349,7 +349,7 @@ def reorder_collection_track(db: Session, collection_id: int, track_id: int, new
             t.track_order += 1
             db.flush()
 
-    #update the track's position
+    #update the tracks position
     track.track_order = new_order
     db.commit()
     db.refresh(track)
@@ -579,9 +579,9 @@ def is_token_revoked(db: Session, jti: str) -> bool:
     return db.query(models.RevokedToken).filter(models.RevokedToken.jti == jti).first() is not None
 
 def cleanup_expired_tokens(db: Session):
-    from datetime import datetime
+    from datetime import datetime, timezone
     deleted = db.query(models.RevokedToken).filter(
-        models.RevokedToken.expires_at < datetime.utcnow()
+        models.RevokedToken.expires_at < datetime.now(timezone.utc)
     ).delete()
     db.commit()
     return deleted
@@ -631,8 +631,8 @@ def get_audit_logs(
     return query.order_by(models.AuditLog.timestamp.desc()).offset(skip).limit(limit).all()
 
 def cleanup_old_audit_logs(db: Session, retention_days: int = 365):
-    from datetime import datetime, timedelta
-    cutoff_date = datetime.utcnow() - timedelta(days=retention_days)
+    from datetime import datetime, timezone, timedelta
+    cutoff_date = datetime.now(timezone.utc) - timedelta(days=retention_days)
     deleted = db.query(models.AuditLog).filter(
         models.AuditLog.timestamp < cutoff_date
     ).delete()
@@ -664,10 +664,10 @@ def get_user_consents(db: Session, user_id: int):
     ).all()
 
 def withdraw_consent(db: Session, consent_id: int):
-    from datetime import datetime
+    from datetime import datetime, timezone
     consent = db.query(models.UserConsent).filter(models.UserConsent.id == consent_id).first()
     if consent:
-        consent.withdrawn_at = datetime.utcnow()
+        consent.withdrawn_at = datetime.now(timezone.utc)
         consent.is_active = False
         db.commit()
     return consent
@@ -687,8 +687,8 @@ def create_retention_policy(
     if policy:
         policy.retention_days = retention_days
         policy.description = description
-        from datetime import datetime
-        policy.updated_at = datetime.utcnow()
+        from datetime import datetime, timezone
+        policy.updated_at = datetime.now(timezone.utc)
     else:
         policy = models.DataRetentionPolicy(
             data_type=data_type,
@@ -737,33 +737,33 @@ def get_deletion_request(db: Session, user_id: int):
     ).first()
 
 def cancel_deletion_request(db: Session, request_id: int):
-    from datetime import datetime
+    from datetime import datetime, timezone
     request = db.query(models.UserDeletionRequest).filter(
         models.UserDeletionRequest.id == request_id
     ).first()
     if request:
         request.status = "cancelled"
-        request.cancelled_at = datetime.utcnow()
+        request.cancelled_at = datetime.now(timezone.utc)
         db.commit()
     return request
 
 def complete_deletion_request(db: Session, request_id: int):
-    from datetime import datetime
+    from datetime import datetime, timezone
     request = db.query(models.UserDeletionRequest).filter(
         models.UserDeletionRequest.id == request_id
     ).first()
     if request:
         request.status = "completed"
-        request.completed_at = datetime.utcnow()
+        request.completed_at = datetime.now(timezone.utc)
         db.commit()
     return request
 
 def get_pending_deletions(db: Session):
-    from datetime import datetime
+    from datetime import datetime, timezone
     return db.query(models.UserDeletionRequest).filter(
         and_(
             models.UserDeletionRequest.status == "pending",
-            models.UserDeletionRequest.scheduled_deletion_at <= datetime.utcnow()
+            models.UserDeletionRequest.scheduled_deletion_at <= datetime.now(timezone.utc)
         )
     ).all()
 
@@ -863,13 +863,13 @@ def hard_delete_user(db: Session, user_id: int):
 # ============= ANNOUNCEMENT CRUD =============
 
 def create_announcement(db: Session, announcement: schemas.AnnouncementCreate, created_by_id: int) -> models.Announcement:
-    from datetime import datetime
+    from datetime import datetime, timezone
 
     db_announcement = models.Announcement(
         title=announcement.title,
         content=announcement.content,
         is_published=announcement.is_published,
-        published_date=datetime.utcnow() if announcement.is_published else None,
+        published_date=datetime.now(timezone.utc) if announcement.is_published else None,
         created_by_id=created_by_id
     )
     db.add(db_announcement)
@@ -908,7 +908,7 @@ def update_announcement(
     announcement_id: int,
     announcement_update: schemas.AnnouncementUpdate
 ) -> Optional[models.Announcement]:
-    from datetime import datetime
+    from datetime import datetime, timezone
 
     db_announcement = db.query(models.Announcement).filter(
         models.Announcement.id == announcement_id
@@ -919,7 +919,7 @@ def update_announcement(
 
         #if publishing for the first time, set published_date
         if 'is_published' in update_dict and update_dict['is_published'] and not db_announcement.is_published:
-            db_announcement.published_date = datetime.utcnow()
+            db_announcement.published_date = datetime.now(timezone.utc)
         #if unpublishing, clear published_date
         elif 'is_published' in update_dict and not update_dict['is_published']:
             db_announcement.published_date = None
@@ -964,13 +964,13 @@ def get_password_reset_token(db: Session, token: str):
     ).first()
 
 def invalidate_password_reset_token(db: Session, token_id: int):
-    from datetime import datetime
+    from datetime import datetime, timezone
     token = db.query(models.PasswordResetToken).filter(
         models.PasswordResetToken.id == token_id
     ).first()
     if token:
         token.is_valid = False
-        token.used_at = datetime.utcnow()
+        token.used_at = datetime.now(timezone.utc)
         db.commit()
     return token
 
@@ -982,9 +982,9 @@ def invalidate_all_user_reset_tokens(db: Session, user_id: int):
     db.commit()
 
 def cleanup_expired_reset_tokens(db: Session):
-    from datetime import datetime
+    from datetime import datetime, timezone
     deleted = db.query(models.PasswordResetToken).filter(
-        models.PasswordResetToken.expires_at < datetime.utcnow()
+        models.PasswordResetToken.expires_at < datetime.now(timezone.utc)
     ).delete()
     db.commit()
     return deleted

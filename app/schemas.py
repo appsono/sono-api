@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, validator, Field
+from pydantic import BaseModel, EmailStr, field_validator, Field, ConfigDict
 from typing import Optional, List
 from datetime import datetime
 from enum import Enum
@@ -18,7 +18,8 @@ class UserCreate(BaseModel):
     password: str = Field(..., min_length=8, description="Password must be at least 8 characters with uppercase, lowercase, number, and special character")
     display_name: Optional[str] = Field(None, max_length=50)
 
-    @validator('password')
+    @field_validator('password')
+    @classmethod
     def validate_password_strength(cls, v):
         if len(v) < 8:
             raise ValueError('Password must be at least 8 characters long')
@@ -33,7 +34,8 @@ class UserCreate(BaseModel):
             raise ValueError('Password must contain at least one special character')
         return v
 
-    @validator('display_name')
+    @field_validator('display_name')
+    @classmethod
     def validate_display_name(cls, v):
         if v is not None:
             v = v.strip()
@@ -46,7 +48,8 @@ class UserCreate(BaseModel):
                 raise ValueError('Display name contains invalid characters')
         return v
 
-    @validator('username')
+    @field_validator('username')
+    @classmethod
     def validate_username(cls, v):
         v = v.strip()
         if len(v) < 3:
@@ -62,7 +65,8 @@ class UserUpdate(BaseModel):
     display_name: Optional[str] = Field(None, max_length=50)
     bio: Optional[str] = Field(None, max_length=280)
 
-    @validator('display_name')
+    @field_validator('display_name')
+    @classmethod
     def validate_display_name(cls, v):
         if v is not None:
             v = v.strip()
@@ -72,7 +76,8 @@ class UserUpdate(BaseModel):
                 raise ValueError('Display name cannot exceed 50 characters')
         return v
 
-    @validator('bio')
+    @field_validator('bio')
+    @classmethod
     def validate_bio(cls, v):
         if v is not None and len(v) > 280:
             raise ValueError('Bio cannot exceed 280 characters')
@@ -93,8 +98,7 @@ class User(UserBase):
     total_audio_files: Optional[int] = None
     created_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class UserDetail(UserBase):
     id: int
@@ -104,8 +108,7 @@ class UserDetail(UserBase):
     max_audio_uploads: int = 20
     created_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class UserPublic(BaseModel):
     id: int
@@ -114,8 +117,7 @@ class UserPublic(BaseModel):
     bio: Optional[str] = None
     profile_picture_url: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # ============= AUDIO FILE SCHEMAS =============
 
@@ -145,14 +147,12 @@ class AudioFile(AudioFileBase):
     upload_date: datetime
     owner_id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class AudioFileResponse(AudioFile):
     owner: Optional[UserPublic] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class AudioFileListResponse(BaseModel):
     files: List[AudioFile]
@@ -177,8 +177,9 @@ class CollectionCreate(BaseModel):
     is_public: bool = False
     is_collaborative: bool = False
 
-    @validator('is_collaborative') 
-    def validate_collaboration(cls, v, values):
+    @field_validator('is_collaborative')
+    @classmethod
+    def validate_collaboration(cls, v):
         return v
 
 class CollectionUpdate(BaseModel):
@@ -206,8 +207,7 @@ class CollectionTrack(BaseModel):
     audio_file: Optional[AudioFile] = None
     added_by: Optional[UserPublic] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class CollectionCollaboratorCreate(BaseModel):
     user_id: int
@@ -226,8 +226,7 @@ class CollectionCollaborator(BaseModel):
     user: Optional[UserPublic] = None
     added_by: Optional[UserPublic] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class Collection(BaseModel):
     id: int
@@ -246,8 +245,7 @@ class Collection(BaseModel):
     tracks: Optional[List[CollectionTrack]] = []
     collaborators: Optional[List[CollectionCollaborator]] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class CollectionResponse(Collection):
     track_count: int = 0
@@ -302,12 +300,13 @@ CompilationListResponse = CollectionListResponse
 # ============= BULK OPERATIONS =============
 
 class BulkAddTracks(BaseModel):
-    audio_file_ids: List[int] = Field(..., min_items=1, max_items=50)
+    audio_file_ids: List[int] = Field(..., min_length=1, max_length=50)
 
 class BulkReorderTracks(BaseModel):
     track_orders: List[dict] = Field(..., description="List of {track_id: int, new_order: int}")
 
-    @validator('track_orders')
+    @field_validator('track_orders')
+    @classmethod
     def validate_track_orders(cls, v):
         for item in v:
             if not isinstance(item, dict) or 'track_id' not in item or 'new_order' not in item:
@@ -337,14 +336,12 @@ class File(FileBase):
     file_url: str
     owner_id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class FileResponse(File):
     owner: Optional[UserPublic] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # ============= TOKEN SCHEMAS =============
 
@@ -374,8 +371,7 @@ class UserCollectionStats(CollectionStats):
     user_id: int
     username: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # ============= ADMIN SCHEMAS =============
 
@@ -395,8 +391,7 @@ class AdminStats(BaseModel):
     public_collections: Optional[int] = None
     collaborative_collections: Optional[int] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class UserUploadLimitUpdate(BaseModel):
     max_audio_uploads: int = Field(..., ge=0, le=1000, description="Maximum audio uploads allowed (0-1000)")
@@ -421,8 +416,7 @@ class ConsentResponse(BaseModel):
     withdrawn_at: Optional[datetime] = None
     is_active: bool
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class RetentionPolicyCreate(BaseModel):
     data_type: str = Field(..., description="Type of data (e.g., 'audio_files', 'user_data', 'audit_logs')")
@@ -437,8 +431,7 @@ class RetentionPolicyResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # ============= NEWS/ANNOUNCEMENTS SCHEMAS =============
 
@@ -463,8 +456,7 @@ class Announcement(BaseModel):
     created_by_id: int
     created_by: Optional[UserPublic] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class AnnouncementListResponse(BaseModel):
     announcements: List[Announcement]
@@ -483,9 +475,9 @@ class PasswordResetConfirm(BaseModel):
     token: str
     new_password: str = Field(..., min_length=8, description="New password (min 8 characters)")
     
-    @validator('new_password')
+    @field_validator('new_password')
+    @classmethod
     def validate_password_strength(cls, v):
-
         if len(v) < 8:
             raise ValueError('Password must be at least 8 characters long')
         if not any(c.isupper() for c in v):

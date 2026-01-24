@@ -181,6 +181,18 @@ def get_collaborative_collections(
         "has_more": has_more
     }
 
+@router.get("/stats", response_model=schemas.UserCollectionStats)
+def get_my_collection_stats(
+    current_user: models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    stats = crud.get_collection_stats(db, user_id=current_user.id)
+    return schemas.UserCollectionStats(
+        user_id=current_user.id,
+        username=current_user.username,
+        **stats
+    )
+
 @router.post("/", response_model=schemas.Collection)
 def create_collection(
     collection: schemas.CollectionCreate,

@@ -10,7 +10,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
 from app.core.config import settings
-from .routers import users, admin, files, audio, collections, announcements
+from .routers import users, admin, audio, collections, announcements
 from .core.storage import create_minio_bucket_if_not_exists
 from .core.scheduler import init_scheduler, start_scheduler, shutdown_scheduler
 
@@ -88,7 +88,6 @@ api_router = APIRouter(prefix=settings.API_V1_STR)
 
 api_router.include_router(users.router)
 api_router.include_router(admin.router)
-api_router.include_router(files.router)
 api_router.include_router(audio.router)
 api_router.include_router(collections.router)
 api_router.include_router(announcements.router)

@@ -1,5 +1,5 @@
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Header, Request
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
@@ -355,7 +355,7 @@ def request_account_deletion(
     current_user: models.User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, timezone
 
     existing_request = crud.get_deletion_request(db, current_user.id)
     if existing_request:
@@ -364,7 +364,7 @@ def request_account_deletion(
             detail=f"Deletion already requested. Scheduled for {existing_request.scheduled_deletion_at.isoformat()}. Use /users/me/cancel-deletion to undo."
         )
 
-    scheduled_deletion = datetime.utcnow() + timedelta(days=7)
+    scheduled_deletion = datetime.now(timezone.utc) + timedelta(days=7)
 
     deletion_req = crud.create_deletion_request(
         db=db,
@@ -424,7 +424,7 @@ def get_deletion_status(
 
     if deletion_request:
         from datetime import datetime
-        time_remaining = (deletion_request.scheduled_deletion_at - datetime.utcnow()).total_seconds()
+        time_remaining = (deletion_request.scheduled_deletion_at - datetime.now(timezone.utc)).total_seconds()
         days_remaining = time_remaining / 86400
 
         return {
@@ -606,7 +606,7 @@ def forgot_password(
     if user:
         reset_token = secrets.token_urlsafe(32)
         
-        expires_at = datetime.utcnow() + timedelta(hours=1)
+        expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
 
         ip_address = request.client.host if request.client else None
 
@@ -664,7 +664,7 @@ def verify_reset_token(
             detail="This reset link has already been used"
         )
     
-    if reset_token.expires_at < datetime.utcnow():
+    if reset_token.expires_at < datetime.now(timezone.utc):
         raise HTTPException(
             status_code=400,
             detail="This reset link has expired. Please request a new one."
@@ -710,7 +710,7 @@ def reset_password(
             detail="This reset link has already been used"
         )
 
-    if reset_token.expires_at < datetime.utcnow():
+    if reset_token.expires_at < datetime.now(timezone.utc):
         crud.create_audit_log(
             db=db,
             action="password_reset.failed",

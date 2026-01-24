@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app import crud, models
@@ -186,7 +186,7 @@ def run_all_cleanup_tasks():
     try:
         logger.info("=" * 80)
         logger.info("Starting data retention cleanup tasks")
-        logger.info(f"Timestamp: {datetime.utcnow().isoformat()}")
+        logger.info(f"Timestamp: {datetime.now(timezone.utc).isoformat()}")
         logger.info("=" * 80)
 
         logger.info("\n1. Cleaning up expired revoked tokens...")

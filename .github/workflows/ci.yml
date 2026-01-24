@@ -22,11 +22,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Lint
+      - name: Lint with Ruff
         run: |
-          pip install ruff
           ruff check .
 
       - name: Run tests
         run: |
-          pytest
+          pytest -v --tb=short
+
+      - name: Test Summary
+        if: always()
+        run: |
+          echo "Tests completed"

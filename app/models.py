@@ -1,6 +1,6 @@
 from sqlalchemy import Boolean, Column, Integer, String, ForeignKey, DateTime, Text, UniqueConstraint, Enum
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 import enum
 from .database import Base
 
@@ -25,7 +25,7 @@ class User(Base):
     profile_picture_url = Column(String, nullable=True)
 
     #timestamp for when user account was created
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     #audio upload limit field
     max_audio_uploads = Column(Integer, default=20)
@@ -118,7 +118,7 @@ class AudioFile(Base):
     duration = Column(Integer, nullable=True)
     content_type = Column(String)
     file_url = Column(String)
-    upload_date = Column(DateTime, default=datetime.utcnow)
+    upload_date = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     is_public = Column(Boolean, default=False)
     
     owner_id = Column(Integer, ForeignKey("users.id"))
@@ -149,8 +149,8 @@ class Collection(Base):
     is_public = Column(Boolean, default=False, nullable=False)
     is_collaborative = Column(Boolean, default=False, nullable=False)  #can be used by any type
     
-    created_date = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_date = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_date = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_date = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
     
     #foreign key to user (collection owner/creator)
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
@@ -198,7 +198,7 @@ class CollectionTrack(Base):
     collection_id = Column(Integer, ForeignKey("collections.id"), nullable=False)
     audio_file_id = Column(Integer, ForeignKey("audio_files.id"), nullable=False)
     track_order = Column(Integer, nullable=False)  #universal ordering
-    added_date = Column(DateTime, default=datetime.utcnow, nullable=False)
+    added_date = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     added_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)  #for collaboration tracking
     
     #relationships
@@ -216,7 +216,7 @@ class CollectionCollaborator(Base):
     collection_id = Column(Integer, ForeignKey("collections.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     permission_level = Column(String(20), default="edit", nullable=False)  #"edit" or "view"
-    added_date = Column(DateTime, default=datetime.utcnow, nullable=False)
+    added_date = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     added_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)  #who added this collaborator
     
     #relationships
@@ -236,8 +236,8 @@ class Announcement(Base):
     title = Column(String(200), nullable=False)
     content = Column(Text, nullable=False)
     is_published = Column(Boolean, default=False, nullable=False)
-    created_date = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_date = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_date = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_date = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
     published_date = Column(DateTime, nullable=True)
 
     #admin who created it
@@ -254,7 +254,7 @@ class RevokedToken(Base):
     token = Column(Text, nullable=False)  #full token for verification
     token_type = Column(String(20), nullable=False)  #"access" or "refresh"
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    revoked_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    revoked_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     expires_at = Column(DateTime, nullable=False)  #when the token would have expired
     reason = Column(String, nullable=True)  #"logout", "password_change", "admin_revoke", etc.
 
@@ -264,7 +264,7 @@ class AuditLog(Base):
     __tablename__ = "audit_logs"
 
     id = Column(Integer, primary_key=True, index=True)
-    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  #nullable for system actions
     action = Column(String, nullable=False, index=True)  #e.g. "user.delete", "data.export", "login.success"
     resource_type = Column(String, nullable=True)  #e.g. "user", "audio_file", "collection"
@@ -283,7 +283,7 @@ class UserConsent(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     consent_type = Column(String, nullable=False)  #e.g. "terms_of_service", "privacy_policy", "data_processing"
     consent_version = Column(String, nullable=False)  #version of terms/policy
-    given_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    given_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     ip_address = Column(String, nullable=True)
     withdrawn_at = Column(DateTime, nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
@@ -299,21 +299,21 @@ class DataRetentionPolicy(Base):
     data_type = Column(String, unique=True, nullable=False)  #e.g., "audio_files", "user_data", "audit_logs"
     retention_days = Column(Integer, nullable=False)  #how many days to keep the data
     description = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
 class UserDeletionRequest(Base):
     __tablename__ = "user_deletion_requests"
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    requested_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    requested_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     scheduled_deletion_at = Column(DateTime, nullable=False)  #when deletion will occur (grace period)
     deletion_type = Column(String(20), nullable=False)  #"soft" or "hard"
     completed_at = Column(DateTime, nullable=True)
     cancelled_at = Column(DateTime, nullable=True)
     status = Column(String(20), default="pending", nullable=False)  #"pending", "completed", "cancelled"
-    reason = Column(Text, nullable=True)  #user's reason for deletion
+    reason = Column(Text, nullable=True)  #users reason for deletion
 
     user = relationship("User")
 
@@ -323,7 +323,7 @@ class PasswordResetToken(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     token = Column(String(255), unique=True, index=True, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     expires_at = Column(DateTime, nullable=False)
     used_at = Column(DateTime, nullable=True)
     is_valid = Column(Boolean, default=True, nullable=False)
