@@ -1,9 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Security, Query
 from sqlalchemy.orm import Session
-from typing import List
 from app import models, crud, schemas
 from app.database import get_db
-from app.core.security import get_current_active_superuser, get_current_active_user, audit_log
+from app.core.security import get_current_active_superuser, audit_log
 
 router = APIRouter(tags=["announcements"])
 

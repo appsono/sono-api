@@ -1,8 +1,7 @@
-import os
 import uuid
 import io
 import logging
-from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Form, Query
+from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Form, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from pathlib import Path
@@ -12,7 +11,7 @@ from app.core.storage import minio_client
 from app.core.security import get_current_active_superuser
 
 from .. import crud, models, schemas
-from ..dependencies import get_db, get_current_user, get_current_active_user
+from ..dependencies import get_db, get_current_active_user
 
 router = APIRouter(
     prefix="/audio",

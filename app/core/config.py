@@ -1,8 +1,7 @@
-import os
 from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import PostgresDsn, field_validator, AnyHttpUrl
-from typing import Optional, Dict, Any, List
+from typing import Optional, Any, List
 
 class Settings(BaseSettings):    
     # --- Project Settings ---

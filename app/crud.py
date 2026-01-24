@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import and_, func, or_
+from sqlalchemy import and_, func
 from . import models, schemas
 from typing import Optional, List, Tuple
 from core.hashing import Hasher

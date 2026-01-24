@@ -352,7 +352,7 @@ Content-Type: application/json
 
 {
   "consent_type": "privacy_policy",
-  "consent_version": "1.0",
+  "consent_version": "2.0",
   "ip_address": "192.168.1.1"
 }
 ```

@@ -1,11 +1,9 @@
-import os
 import secrets
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException, status, Security, File, UploadFile, Header, Request
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Header, Request
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import List, Optional
-from pathlib import Path
 from pydantic import ValidationError
 import uuid
 import logging
@@ -489,7 +487,6 @@ def export_user_data(
     current_user: models.User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-    import json
 
     audio_files = db.query(models.AudioFile).filter(models.AudioFile.owner_id == current_user.id).all()
     collections = db.query(models.Collection).filter(models.Collection.owner_id == current_user.id).all()

@@ -2,8 +2,8 @@ import io
 import uuid
 import logging
 from pathlib import Path
-from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Query, Path as PathParam
-from sqlalchemy.orm import Session, joinedload
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Query
+from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from app.core.config import settings
@@ -136,7 +136,6 @@ def get_collaborative_collections(
     current_user: models.User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-    from sqlalchemy import and_
     collaborator_collection_ids = db.query(models.CollectionCollaborator.collection_id).filter(
         models.CollectionCollaborator.user_id == current_user.id
     ).subquery()

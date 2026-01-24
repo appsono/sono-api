@@ -528,7 +528,7 @@ def cleanup_profile_pictures_endpoint(
     result = cleanup_unused_profile_pictures(db)
 
     return {
-        "message": f"Profile picture cleanup complete",
+        "message": "Profile picture cleanup complete",
         "deleted_count": result.get("deleted", 0),
         "error_count": result.get("errors", 0)
     }
