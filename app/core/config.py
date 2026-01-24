@@ -33,14 +33,14 @@ class Settings(BaseSettings):
     def assemble_db_connection(cls, v: Optional[str], info) -> Any:
         if isinstance(v, str):
             return v
-        
+
         return PostgresDsn.build(
             scheme="postgresql",
-            user=info.data.get("POSTGRES_USER"),
+            username=info.data.get("POSTGRES_USER"),
             password=info.data.get("POSTGRES_PASSWORD"),
             host=info.data.get("POSTGRES_HOST"),
-            port=info.data.get("POSTGRES_PORT"),
-            path=f"/{info.data.get('POSTGRES_DB') or ''}",
+            port=int(info.data.get("POSTGRES_PORT", 5432)),
+            path=info.data.get('POSTGRES_DB') or '',
         )
 
     # --- PGAdmin Settings ---
