@@ -3,7 +3,6 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
-from contextlib import nullcontext
 from unittest import mock
 
 def passthrough_decorator(*args, **kwargs):
@@ -15,15 +14,14 @@ def passthrough_decorator(*args, **kwargs):
 mock.patch('slowapi.Limiter.limit', passthrough_decorator).start()
 mock.patch('slowapi.Limiter.shared_limit', passthrough_decorator).start()
 
+# ruff: noqa: E402
 from app.main import app
 from app.database import Base
 from app.database import get_db as database_get_db
 from app.dependencies import get_db as dependencies_get_db
 from app.core.config import settings
-from app import crud, schemas, models
+from app import models
 from app.core.hashing import Hasher
-from limits.storage import MemoryStorage
-from limits.strategies import STRATEGIES
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
 
