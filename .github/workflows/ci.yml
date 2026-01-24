@@ -28,6 +28,17 @@ jobs:
           ruff check .
 
       - name: Run tests
+        env:
+          SECRET_KEY: testsecretkey
+          REFRESH_TOKEN_SECRET_KEY: testrefreshsecretkey
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: testdb
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          MINIO_ENDPOINT: localhost:9000
+          MINIO_ACCESS_KEY: minioadmin
+          MINIO_SECRET_KEY: minioadmin
         run: |
           pytest -v --tb=short
 
