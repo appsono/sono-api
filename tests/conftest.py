@@ -11,8 +11,14 @@ def passthrough_decorator(*args, **kwargs):
         return func
     return decorator
 
+class MockCryptoHandler:
+    """mock crypto handler for testing"""
+    def decrypt_password(self, encrypted_password: str) -> str:
+        return encrypted_password
+
 mock.patch('slowapi.Limiter.limit', passthrough_decorator).start()
 mock.patch('slowapi.Limiter.shared_limit', passthrough_decorator).start()
+mock.patch('app.core.crypto.CryptoHandler', MockCryptoHandler).start()
 
 # ruff: noqa: E402
 from app.main import app
