@@ -49,7 +49,14 @@ class Settings(BaseSettings):
 
     # --- MinIO Storage Settings ---
     MINIO_ENDPOINT: str
+    MINIO_PUBLIC_URL: str = ""
     MINIO_ACCESS_KEY: str
+
+    @property
+    def minio_public_base(self) -> str:
+        if self.MINIO_PUBLIC_URL:
+            return self.MINIO_PUBLIC_URL.rstrip('/')
+        return f"http://{self.MINIO_ENDPOINT}"
     MINIO_SECRET_KEY: str
     MINIO_USE_HTTPS: bool = False
     MINIO_BUCKET_NAME: str = ""

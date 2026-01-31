@@ -286,7 +286,7 @@ async def upload_profile_picture(
             content_type=file.content_type
         )
 
-        file_url = f"http://{settings.MINIO_ENDPOINT}/{settings.MINIO_BUCKET_NAME}/{unique_filename}"
+        file_url = f"{settings.minio_public_base}/{settings.MINIO_BUCKET_NAME}/{unique_filename}"
 
         current_user.profile_picture_url = file_url
         db.commit()

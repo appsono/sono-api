@@ -300,13 +300,14 @@ def remove_track_from_collection(db: Session, collection_id: int, track_id: int)
     if db_track:
         old_order = db_track.track_order
         db.delete(db_track)
-        
+        db.flush()
+
         #shift remaining tracks up to fill gap
         db.query(models.CollectionTrack).filter(
             and_(models.CollectionTrack.collection_id == collection_id,
                  models.CollectionTrack.track_order > old_order)
         ).update({models.CollectionTrack.track_order: models.CollectionTrack.track_order - 1})
-        
+
         db.commit()
         return True
     return False

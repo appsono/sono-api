@@ -2,6 +2,7 @@ import uuid
 import io
 import logging
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Form, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from pathlib import Path
@@ -91,7 +92,7 @@ async def upload_audio_file(
             content_type=file.content_type
         )
         
-        file_url = f"http://{settings.MINIO_ENDPOINT}/audio-files/{stored_filename}"
+        file_url = f"{settings.minio_public_base}/audio-files/{stored_filename}"
         
         file_data = {
             "original_filename": file.filename or "untitled",
@@ -152,6 +153,38 @@ def get_audio_file(
         raise HTTPException(status_code=403, detail="Access denied")
     
     return audio_file
+
+@router.get("/{file_id}/download")
+def download_audio_file(
+    file_id: int,
+    current_user: models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    audio_file = crud.get_audio_file(db, file_id)
+    if not audio_file:
+        raise HTTPException(status_code=404, detail="Audio file not found")
+
+    if audio_file.owner_id != current_user.id and not audio_file.is_public:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    try:
+        response = minio_client.get_object("audio-files", audio_file.stored_filename)
+        filename = audio_file.original_filename or f"{audio_file.title or 'audio'}{Path(audio_file.stored_filename).suffix}"
+
+        from urllib.parse import quote
+        ascii_filename = filename.encode('ascii', 'replace').decode('ascii')
+        utf8_filename = quote(filename)
+
+        return StreamingResponse(
+            response,
+            media_type=audio_file.content_type or "application/octet-stream",
+            headers={
+                "Content-Disposition": f"attachment; filename=\"{ascii_filename}\"; filename*=UTF-8''{utf8_filename}"
+            }
+        )
+    except Exception as e:
+        logging.error(f"Error downloading audio file from MinIO: {e}")
+        raise HTTPException(status_code=500, detail="Could not download file")
 
 @router.put("/{file_id}", response_model=schemas.AudioFile)
 def update_audio_file(

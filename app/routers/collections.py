@@ -1,8 +1,11 @@
 import io
 import uuid
+import zipfile
 import logging
+from datetime import date
 from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
@@ -319,6 +322,74 @@ def delete_collection(
     else:
         raise HTTPException(status_code=500, detail="Failed to delete collection")
 
+# ============= DOWNLOAD =============
+
+@router.get("/{collection_id}/download")
+def download_collection(
+    collection_id: int,
+    current_user: Optional[models.User] = Depends(get_optional_current_user),
+    db: Session = Depends(get_db)
+):
+    collection = crud.get_collection(db, collection_id)
+    if not collection:
+        raise HTTPException(status_code=404, detail="Collection not found")
+
+    if not collection.is_public:
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        can_view, _ = crud.user_can_view_collection(db, collection_id, current_user.id)
+        if not can_view and not current_user.is_superuser:
+            raise HTTPException(status_code=403, detail="Access denied")
+
+    tracks = collection.tracks or []
+    if not tracks:
+        raise HTTPException(status_code=400, detail="Collection has no tracks to download")
+
+    try:
+        zip_buffer = io.BytesIO()
+        used_names = {}
+
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+            for track in tracks:
+                audio_file = track.audio_file
+                if not audio_file:
+                    continue
+
+                filename = audio_file.original_filename or f"{audio_file.title or 'track'}{Path(audio_file.stored_filename).suffix}"
+
+                if filename in used_names:
+                    used_names[filename] += 1
+                    stem = Path(filename).stem
+                    ext = Path(filename).suffix
+                    filename = f"{stem} ({used_names[filename]}){ext}"
+                else:
+                    used_names[filename] = 0
+
+                response = minio_client.get_object("audio-files", audio_file.stored_filename)
+                zf.writestr(filename, response.read())
+                response.close()
+                response.release_conn()
+
+        zip_buffer.seek(0)
+        zip_filename = f"{collection.title}_{date.today().isoformat()}.zip"
+
+        from urllib.parse import quote
+        ascii_filename = zip_filename.encode('ascii', 'replace').decode('ascii')
+        utf8_filename = quote(zip_filename)
+
+        return StreamingResponse(
+            zip_buffer,
+            media_type="application/zip",
+            headers={
+                "Content-Disposition": f"attachment; filename=\"{ascii_filename}\"; filename*=UTF-8''{utf8_filename}"
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error creating collection zip: {e}")
+        raise HTTPException(status_code=500, detail="Could not create download")
+
 # ============= COVER ART MANAGEMENT =============
 
 @router.post("/{collection_id}/cover-art", response_model=schemas.Collection)
@@ -367,7 +438,7 @@ async def upload_collection_cover_art(
             content_type=file.content_type
         )
 
-        file_url = f"http://{settings.MINIO_ENDPOINT}/cover-art/{stored_filename}"
+        file_url = f"{settings.minio_public_base}/cover-art/{stored_filename}"
         collection.cover_art_url = file_url
         db.commit()
         db.refresh(collection)
