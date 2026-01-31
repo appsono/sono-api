@@ -168,4 +168,4 @@ This API is under active development.
 
 ## License
 
-Private / internal use for the Sono platform.
+This project is licensed under the GNU General Public License v3.0.
