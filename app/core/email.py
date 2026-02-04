@@ -24,12 +24,12 @@ def send_password_reset_email(email: str, reset_token: str, username: str) -> bo
         return False
 
     reset_url = f"{settings.FRONTEND_URL}/reset-password?token={reset_token}"
-    
-    msg = MIMEMultipart('alternative')
-    msg['From'] = settings.SMTP_FROM
-    msg['To'] = email
-    msg['Subject'] = "Password Reset Request - Sono"
-    
+
+    msg = MIMEMultipart("alternative")
+    msg["From"] = settings.SMTP_FROM
+    msg["To"] = email
+    msg["Subject"] = "Password Reset Request - Sono"
+
     html_body = f"""
 <!DOCTYPE html>
 <html>
@@ -220,18 +220,18 @@ def send_password_reset_email(email: str, reset_token: str, username: str) -> bo
 </body>
 </html>
 """
-    
-    msg.attach(MIMEText(html_body, 'html'))
-    
+
+    msg.attach(MIMEText(html_body, "html"))
+
     try:
         with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
             server.starttls()
             server.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
             server.send_message(msg)
-        
+
         logger.info(f"Password reset email sent successfully to {email}")
         return True
-        
+
     except smtplib.SMTPAuthenticationError as e:
         logger.error(f"SMTP Authentication failed: {str(e)}")
         return False

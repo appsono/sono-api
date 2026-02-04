@@ -572,6 +572,130 @@ GET /api/v1/announcements/{announcement_id}
 
 ---
 
+## Kworb (Spotify Statistics)
+
+Data sourced from the Kworb scraper database. Requires `KWORB_DATABASE_URL` to be configured.
+
+### Get Top Streamed Artists
+```bash
+GET /api/v1/kworb/top-streamed-artists?limit=100&offset=0
+```
+
+**Query Parameters:**
+- `limit` (optional): Number of results (1-1000, default: 100)
+- `offset` (optional): Pagination offset (default: 0)
+
+**Response:**
+```json
+[
+  {
+    "rank": 1,
+    "artist": "Artist Name",
+    "streams": 123456789,
+    "daily": 1234567,
+    "as_lead": 100000000,
+    "solo": 80000000,
+    "as_feature": 23456789,
+    "scraped_at": "2025-01-01T00:00:00"
+  }
+]
+```
+
+### Get Monthly Listeners
+```bash
+GET /api/v1/kworb/monthly-listeners?limit=100&offset=0
+```
+
+**Query Parameters:**
+- `limit` (optional): Number of results (1-1000, default: 100)
+- `offset` (optional): Pagination offset (default: 0)
+
+**Response:**
+```json
+[
+  {
+    "rank": 1,
+    "artist": "Artist Name",
+    "listeners": 98765432,
+    "peak": 100000000,
+    "peak_date": "2024-12-15",
+    "scraped_at": "2025-01-01T00:00:00"
+  }
+]
+```
+
+### Get Top Songs
+```bash
+GET /api/v1/kworb/top-songs?limit=100&offset=0
+```
+
+**Query Parameters:**
+- `limit` (optional): Number of results (1-1000, default: 100)
+- `offset` (optional): Pagination offset (default: 0)
+
+**Response:**
+```json
+[
+  {
+    "rank": 1,
+    "title": "Song Title",
+    "artist": "Artist Name",
+    "streams": 3000000000,
+    "daily": 5000000,
+    "scraped_at": "2025-01-01T00:00:00"
+  }
+]
+```
+
+### Search Artist
+```bash
+GET /api/v1/kworb/artist/{artist_name}
+```
+
+Searches for an artist across all Kworb data (top streamed, monthly listeners, and top songs).
+
+**Response:**
+```json
+{
+  "top_streamed": [
+    {
+      "rank": 1,
+      "artist": "Artist Name",
+      "streams": 123456789,
+      "daily": 1234567,
+      "as_lead": 100000000,
+      "solo": 80000000,
+      "as_feature": 23456789,
+      "scraped_at": "2025-01-01T00:00:00"
+    }
+  ],
+  "monthly_listeners": [
+    {
+      "rank": 1,
+      "artist": "Artist Name",
+      "listeners": 98765432,
+      "peak": 100000000,
+      "peak_date": "2024-12-15",
+      "scraped_at": "2025-01-01T00:00:00"
+    }
+  ],
+  "top_songs": [
+    {
+      "rank": 1,
+      "title": "Song Title",
+      "artist": "Artist Name",
+      "streams": 3000000000,
+      "daily": 5000000,
+      "scraped_at": "2025-01-01T00:00:00"
+    }
+  ]
+}
+```
+
+**Note:** Returns up to 10 results per category. Search is case-insensitive and matches partial artist names.
+
+---
+
 ## Admin - User Management
 
 ### Get System Statistics

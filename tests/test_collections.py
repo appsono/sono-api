@@ -1,4 +1,5 @@
 """tests for collection endpoints"""
+
 from app.core.config import settings
 
 
@@ -156,6 +157,7 @@ def test_get_collection_stats(client, auth_headers):
 def test_update_other_user_collection_fails(client, auth_headers, test_superuser, db_session):
     """test that users cannot update other users' collections"""
     from app import models
+
     collection = models.Collection(
         title="Admin Collection",
         collection_type="playlist",

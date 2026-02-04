@@ -5,20 +5,26 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 from unittest import mock
 
+
 def passthrough_decorator(*args, **kwargs):
     """Passthrough decorator that doesn't do rate limiting"""
+
     def decorator(func):
         return func
+
     return decorator
+
 
 class MockCryptoHandler:
     """mock crypto handler for testing"""
+
     def decrypt_password(self, encrypted_password: str) -> str:
         return encrypted_password
 
-mock.patch('slowapi.Limiter.limit', passthrough_decorator).start()
-mock.patch('slowapi.Limiter.shared_limit', passthrough_decorator).start()
-mock.patch('app.core.crypto.CryptoHandler', MockCryptoHandler).start()
+
+mock.patch("slowapi.Limiter.limit", passthrough_decorator).start()
+mock.patch("slowapi.Limiter.shared_limit", passthrough_decorator).start()
+mock.patch("app.core.crypto.CryptoHandler", MockCryptoHandler).start()
 
 # ruff: noqa: E402
 from app.main import app
@@ -54,6 +60,7 @@ def db_session():
 @pytest.fixture(scope="function")
 def client(db_session):
     """create a test client with overridden database dependency"""
+
     def override_get_db():
         try:
             yield db_session
@@ -68,12 +75,13 @@ def client(db_session):
         response = await call_next(request)
         return response
 
-    with mock.patch('app.core.storage.create_minio_bucket_if_not_exists'), \
-         mock.patch('app.core.scheduler.init_scheduler'), \
-         mock.patch('app.core.scheduler.start_scheduler'), \
-         mock.patch('app.core.scheduler.shutdown_scheduler'), \
-         mock.patch('slowapi.middleware.SlowAPIMiddleware.dispatch', passthrough_middleware):
-
+    with (
+        mock.patch("app.core.storage.create_minio_bucket_if_not_exists"),
+        mock.patch("app.core.scheduler.init_scheduler"),
+        mock.patch("app.core.scheduler.start_scheduler"),
+        mock.patch("app.core.scheduler.shutdown_scheduler"),
+        mock.patch("slowapi.middleware.SlowAPIMiddleware.dispatch", passthrough_middleware),
+    ):
         with TestClient(app, base_url="http://localhost:8000") as test_client:
             yield test_client
 

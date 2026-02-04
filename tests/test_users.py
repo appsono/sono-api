@@ -1,4 +1,5 @@
 """tests for user endpoints"""
+
 from app.core.config import settings
 
 

@@ -12,10 +12,10 @@ import uuid
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/users/token")
 
-async def get_current_user(
-    db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)
-) -> models.User:
-    from app import crud 
+
+async def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)) -> models.User:
+    from app import crud
+
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -28,7 +28,7 @@ async def get_current_user(
         if token_type != "access":
             raise credentials_exception
 
-        #check if token is revoked
+        # check if token is revoked
         jti: Optional[str] = payload.get("jti")
         if jti and crud.is_token_revoked(db, jti):
             raise HTTPException(
@@ -43,40 +43,36 @@ async def get_current_user(
         token_data = schemas.TokenData(username=username, token_type=token_type)
     except JWTError:
         raise credentials_exception
-    
+
     user = crud.get_user_by_username(db, username=token_data.username)
     if user is None:
         raise credentials_exception
     return user
 
-async def get_current_active_user(
-    current_user: models.User = Depends(get_current_user)
-) -> models.User:
+
+async def get_current_active_user(current_user: models.User = Depends(get_current_user)) -> models.User:
     if not current_user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user")
     return current_user
+
 
 def get_current_active_superuser(
     current_user: models.User = Depends(get_current_active_user),
 ) -> models.User:
     if not current_user.is_superuser:
-        raise HTTPException(
-            status_code=403, detail="The user doesn't have enough privileges"
-        )
+        raise HTTPException(status_code=403, detail="The user doesn't have enough privileges")
     return current_user
+
 
 def create_access_token(data: dict) -> Tuple[str, str, datetime]:
     """create access token"""
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     jti = str(uuid.uuid4())
-    to_encode.update({
-        "exp": expire,
-        "token_type": "access",
-        "jti": jti
-    })
+    to_encode.update({"exp": expire, "token_type": "access", "jti": jti})
     token = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return token, jti, expire
+
 
 def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) -> Tuple[str, str, datetime]:
     """create refresh token"""
@@ -86,17 +82,16 @@ def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) 
     else:
         expire = datetime.now(timezone.utc) + timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES)
     jti = str(uuid.uuid4())
-    to_encode.update({
-        "exp": expire,
-        "token_type": "refresh",
-        "jti": jti
-    })
+    to_encode.update({"exp": expire, "token_type": "refresh", "jti": jti})
     encoded_jwt = jwt.encode(to_encode, settings.REFRESH_TOKEN_SECRET_KEY, algorithm=settings.REFRESH_TOKEN_ALGORITHM)
     return encoded_jwt, jti, expire
 
+
 def audit_log(message: str):
     from datetime import datetime
+
     print(f"[AUDIT] {datetime.now(timezone.utc).isoformat()} - {message}")
+
 
 def authenticate_user(username: str, password: str, db: Session):
     user = crud.get_user_by_email(db, username)

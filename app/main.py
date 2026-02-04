@@ -10,11 +10,12 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
 from app.core.config import settings
-from .routers import users, admin, audio, collections, announcements
+from .routers import users, admin, audio, collections, announcements, kworb
 from .core.storage import create_minio_bucket_if_not_exists
 from .core.scheduler import init_scheduler, start_scheduler, shutdown_scheduler
 
 limiter = Limiter(key_func=get_remote_address)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -24,20 +25,16 @@ async def lifespan(app: FastAPI):
     yield
     shutdown_scheduler()
 
-app = FastAPI(
-    lifespan=lifespan,
-    title="Sono API",
-    version="1.0.0",
-    docs_url=None,
-    redoc_url=None
-)
 
-#rate limiting
+app = FastAPI(lifespan=lifespan, title="Sono API", version="1.0.0", docs_url=None, redoc_url=None)
+
+# rate limiting
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
-#security headers
+
+# security headers
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
     response = await call_next(request)
@@ -47,7 +44,8 @@ async def security_headers(request: Request, call_next):
     response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
     return response
 
-#CORS
+
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -61,17 +59,10 @@ app.add_middleware(
     allow_origin_regex=r"https://.*\.sono\.wtf",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=[
-        "Authorization", 
-        "Content-Type", 
-        "X-Password-Encrypted",
-        "X-Requested-With",
-        "Accept",
-        "Origin"
-    ],
+    allow_headers=["Authorization", "Content-Type", "X-Password-Encrypted", "X-Requested-With", "Accept", "Origin"],
 )
 
-#trusted hosts
+# trusted hosts
 app.add_middleware(
     TrustedHostMiddleware,
     allowed_hosts=[
@@ -91,12 +82,15 @@ api_router.include_router(admin.router)
 api_router.include_router(audio.router)
 api_router.include_router(collections.router)
 api_router.include_router(announcements.router)
+api_router.include_router(kworb.router)
 
 app.include_router(api_router)
+
 
 @app.get("/", include_in_schema=False)
 def read_root():
     return {"message": "OK"}
+
 
 @app.get("/health", tags=["health"])
 def health_check():
@@ -106,9 +100,7 @@ def health_check():
         "version": "1.0.0",
     }
 
+
 @app.exception_handler(RateLimitExceeded)
 async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
-    return JSONResponse(
-        status_code=429,
-        content={"detail": "Too many requests"}
-    )
+    return JSONResponse(status_code=429, content={"detail": "Too many requests"})

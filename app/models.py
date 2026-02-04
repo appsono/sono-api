@@ -6,12 +6,15 @@ from .database import Base
 
 # ============= ENUMS =============
 
+
 class CollectionType(str, enum.Enum):
     ALBUM = "album"
     PLAYLIST = "playlist"
     COMPILATION = "compilation"
 
+
 # ============= USER MODEL =============
+
 
 class User(Base):
     __tablename__ = "users"
@@ -24,41 +27,28 @@ class User(Base):
     is_superuser = Column(Boolean, default=False)
     profile_picture_url = Column(String, nullable=True)
 
-    #timestamp for when user account was created
+    # timestamp for when user account was created
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
-    #audio upload limit field
+    # audio upload limit field
     max_audio_uploads = Column(Integer, default=20)
 
     display_name = Column(String, nullable=True)
     bio = Column(String, nullable=True)
 
-    #existing relationships
+    # existing relationships
     files = relationship("File", back_populates="owner")
     audio_files = relationship("AudioFile", back_populates="owner")
-    
+
     collections = relationship("Collection", back_populates="owner", cascade="all, delete-orphan")
-    
-    #collection collaboration relationships
-    collection_collaborations = relationship(
-        "CollectionCollaborator", 
-        foreign_keys="CollectionCollaborator.user_id",
-        back_populates="user",
-        cascade="all, delete-orphan"
-    )
-    
-    added_collaborations = relationship(
-        "CollectionCollaborator", 
-        foreign_keys="CollectionCollaborator.added_by_id",
-        back_populates="added_by"
-    )
-    
-    #collection tracks added by this user
-    added_collection_tracks = relationship(
-        "CollectionTrack", 
-        foreign_keys="CollectionTrack.added_by_id",
-        back_populates="added_by"
-    )
+
+    # collection collaboration relationships
+    collection_collaborations = relationship("CollectionCollaborator", foreign_keys="CollectionCollaborator.user_id", back_populates="user", cascade="all, delete-orphan")
+
+    added_collaborations = relationship("CollectionCollaborator", foreign_keys="CollectionCollaborator.added_by_id", back_populates="added_by")
+
+    # collection tracks added by this user
+    added_collection_tracks = relationship("CollectionTrack", foreign_keys="CollectionTrack.added_by_id", back_populates="added_by")
 
     def get_albums(self):
         return [c for c in self.collections if c.collection_type == CollectionType.ALBUM]
@@ -73,14 +63,14 @@ class User(Base):
         albums = self.get_albums()
         playlists = self.get_playlists()
         compilations = self.get_compilations()
-        
+
         return {
             "total_collections": len(self.collections),
             "albums_count": len(albums),
             "playlists_count": len(playlists),
             "compilations_count": len(compilations),
             "collaborative_count": len([c for c in self.collections if c.is_collaborative]),
-            "public_count": len([c for c in self.collections if c.is_public])
+            "public_count": len([c for c in self.collections if c.is_public]),
         }
 
     def can_create_collection(self, collection_type=None):
@@ -94,6 +84,7 @@ class User(Base):
         collaborative = self.get_collaborative_collections()
         return list(set(owned + collaborative))
 
+
 class File(Base):
     __tablename__ = "files"
 
@@ -105,6 +96,7 @@ class File(Base):
     owner_id = Column(Integer, ForeignKey("users.id"))
 
     owner = relationship("User", back_populates="files")
+
 
 class AudioFile(Base):
     __tablename__ = "audio_files"
@@ -120,9 +112,9 @@ class AudioFile(Base):
     file_url = Column(String)
     upload_date = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     is_public = Column(Boolean, default=False)
-    
+
     owner_id = Column(Integer, ForeignKey("users.id"))
-    
+
     owner = relationship("User", back_populates="audio_files")
     collection_tracks = relationship("CollectionTrack", back_populates="audio_file")
 
@@ -132,7 +124,9 @@ class AudioFile(Base):
     def is_in_collection(self, collection_id):
         return any(track.collection_id == collection_id for track in self.collection_tracks)
 
+
 # ============= UNIFIED COLLECTIONS MODELS =============
+
 
 class Collection(Base):
     __tablename__ = "collections"
@@ -141,21 +135,21 @@ class Collection(Base):
     title = Column(String(100), nullable=False)
     description = Column(Text, nullable=True)
     collection_type = Column(Enum(CollectionType, values_callable=lambda x: [e.value for e in x]), nullable=False, index=True)
-    
-    artist = Column(String(100), nullable=True)  #primarily for albums
-    curator_note = Column(Text, nullable=True)   #primarily for compilations
-    
+
+    artist = Column(String(100), nullable=True)  # primarily for albums
+    curator_note = Column(Text, nullable=True)  # primarily for compilations
+
     cover_art_url = Column(String, nullable=True)
     is_public = Column(Boolean, default=False, nullable=False)
-    is_collaborative = Column(Boolean, default=False, nullable=False)  #can be used by any type
-    
+    is_collaborative = Column(Boolean, default=False, nullable=False)  # can be used by any type
+
     created_date = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_date = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
-    
-    #foreign key to user (collection owner/creator)
+
+    # foreign key to user (collection owner/creator)
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    
-    #relationships
+
+    # relationships
     owner = relationship("User", back_populates="collections")
     tracks = relationship("CollectionTrack", back_populates="collection", cascade="all, delete-orphan", order_by="CollectionTrack.track_order")
     collaborators = relationship("CollectionCollaborator", back_populates="collection", cascade="all, delete-orphan")
@@ -191,23 +185,25 @@ class Collection(Base):
             return any(c.user_id == user_id and c.permission_level == "edit" for c in self.collaborators)
         return False
 
+
 class CollectionTrack(Base):
     __tablename__ = "collection_tracks"
 
     id = Column(Integer, primary_key=True, index=True)
     collection_id = Column(Integer, ForeignKey("collections.id"), nullable=False)
     audio_file_id = Column(Integer, ForeignKey("audio_files.id"), nullable=False)
-    track_order = Column(Integer, nullable=False)  #universal ordering
+    track_order = Column(Integer, nullable=False)  # universal ordering
     added_date = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    added_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)  #for collaboration tracking
-    
-    #relationships
+    added_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # for collaboration tracking
+
+    # relationships
     collection = relationship("Collection", back_populates="tracks")
     audio_file = relationship("AudioFile", back_populates="collection_tracks")
     added_by = relationship("User", foreign_keys=[added_by_id])
-    
-    #ensure unique track orders per collection
-    __table_args__ = (UniqueConstraint('collection_id', 'track_order', name='uq_collection_track_order'),)
+
+    # ensure unique track orders per collection
+    __table_args__ = (UniqueConstraint("collection_id", "track_order", name="uq_collection_track_order"),)
+
 
 class CollectionCollaborator(Base):
     __tablename__ = "collection_collaborators"
@@ -215,19 +211,21 @@ class CollectionCollaborator(Base):
     id = Column(Integer, primary_key=True, index=True)
     collection_id = Column(Integer, ForeignKey("collections.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    permission_level = Column(String(20), default="edit", nullable=False)  #"edit" or "view"
+    permission_level = Column(String(20), default="edit", nullable=False)  # "edit" or "view"
     added_date = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    added_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)  #who added this collaborator
-    
-    #relationships
+    added_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)  # who added this collaborator
+
+    # relationships
     collection = relationship("Collection", back_populates="collaborators")
     user = relationship("User", foreign_keys=[user_id], back_populates="collection_collaborations")
     added_by = relationship("User", foreign_keys=[added_by_id], back_populates="added_collaborations")
-    
-    #ensure unique collaborator per collection
-    __table_args__ = (UniqueConstraint('collection_id', 'user_id', name='uq_collection_collaborator'),)
+
+    # ensure unique collaborator per collection
+    __table_args__ = (UniqueConstraint("collection_id", "user_id", name="uq_collection_collaborator"),)
+
 
 # ============= NEWS/ANNOUNCEMENTS MODEL =============
+
 
 class Announcement(Base):
     __tablename__ = "announcements"
@@ -240,49 +238,53 @@ class Announcement(Base):
     updated_date = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
     published_date = Column(DateTime, nullable=True)
 
-    #admin who created it
+    # admin who created it
     created_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_by = relationship("User", foreign_keys=[created_by_id])
 
+
 # ============= SECURITY & COMPLIANCE MODELS =============
+
 
 class RevokedToken(Base):
     __tablename__ = "revoked_tokens"
 
     id = Column(Integer, primary_key=True, index=True)
-    jti = Column(String, unique=True, index=True, nullable=False)  #JWT ID (token identifier)
-    token = Column(Text, nullable=False)  #full token for verification
-    token_type = Column(String(20), nullable=False)  #"access" or "refresh"
+    jti = Column(String, unique=True, index=True, nullable=False)  # JWT ID (token identifier)
+    token = Column(Text, nullable=False)  # full token for verification
+    token_type = Column(String(20), nullable=False)  # "access" or "refresh"
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     revoked_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    expires_at = Column(DateTime, nullable=False)  #when the token would have expired
-    reason = Column(String, nullable=True)  #"logout", "password_change", "admin_revoke", etc.
+    expires_at = Column(DateTime, nullable=False)  # when the token would have expired
+    reason = Column(String, nullable=True)  # "logout", "password_change", "admin_revoke", etc.
 
     user = relationship("User")
+
 
 class AuditLog(Base):
     __tablename__ = "audit_logs"
 
     id = Column(Integer, primary_key=True, index=True)
     timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  #nullable for system actions
-    action = Column(String, nullable=False, index=True)  #e.g. "user.delete", "data.export", "login.success"
-    resource_type = Column(String, nullable=True)  #e.g. "user", "audio_file", "collection"
-    resource_id = Column(String, nullable=True)  #ID of affected resource
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # nullable for system actions
+    action = Column(String, nullable=False, index=True)  # e.g. "user.delete", "data.export", "login.success"
+    resource_type = Column(String, nullable=True)  # e.g. "user", "audio_file", "collection"
+    resource_id = Column(String, nullable=True)  # ID of affected resource
     ip_address = Column(String, nullable=True)
     user_agent = Column(String, nullable=True)
-    details = Column(Text, nullable=True)  #JSON or text details
+    details = Column(Text, nullable=True)  # JSON or text details
     success = Column(Boolean, default=True, nullable=False)
 
     user = relationship("User")
+
 
 class UserConsent(Base):
     __tablename__ = "user_consents"
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    consent_type = Column(String, nullable=False)  #e.g. "terms_of_service", "privacy_policy", "data_processing"
-    consent_version = Column(String, nullable=False)  #version of terms/policy
+    consent_type = Column(String, nullable=False)  # e.g. "terms_of_service", "privacy_policy", "data_processing"
+    consent_version = Column(String, nullable=False)  # version of terms/policy
     given_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     ip_address = Column(String, nullable=True)
     withdrawn_at = Column(DateTime, nullable=True)
@@ -290,17 +292,19 @@ class UserConsent(Base):
 
     user = relationship("User")
 
-    __table_args__ = (UniqueConstraint('user_id', 'consent_type', 'consent_version', name='uq_user_consent'),)
+    __table_args__ = (UniqueConstraint("user_id", "consent_type", "consent_version", name="uq_user_consent"),)
+
 
 class DataRetentionPolicy(Base):
     __tablename__ = "data_retention_policies"
 
     id = Column(Integer, primary_key=True, index=True)
-    data_type = Column(String, unique=True, nullable=False)  #e.g., "audio_files", "user_data", "audit_logs"
-    retention_days = Column(Integer, nullable=False)  #how many days to keep the data
+    data_type = Column(String, unique=True, nullable=False)  # e.g., "audio_files", "user_data", "audit_logs"
+    retention_days = Column(Integer, nullable=False)  # how many days to keep the data
     description = Column(Text, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+
 
 class UserDeletionRequest(Base):
     __tablename__ = "user_deletion_requests"
@@ -308,14 +312,15 @@ class UserDeletionRequest(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     requested_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    scheduled_deletion_at = Column(DateTime, nullable=False)  #when deletion will occur (grace period)
-    deletion_type = Column(String(20), nullable=False)  #"soft" or "hard"
+    scheduled_deletion_at = Column(DateTime, nullable=False)  # when deletion will occur (grace period)
+    deletion_type = Column(String(20), nullable=False)  # "soft" or "hard"
     completed_at = Column(DateTime, nullable=True)
     cancelled_at = Column(DateTime, nullable=True)
-    status = Column(String(20), default="pending", nullable=False)  #"pending", "completed", "cancelled"
-    reason = Column(Text, nullable=True)  #users reason for deletion
+    status = Column(String(20), default="pending", nullable=False)  # "pending", "completed", "cancelled"
+    reason = Column(Text, nullable=True)  # users reason for deletion
 
     user = relationship("User")
+
 
 class PasswordResetToken(Base):
     __tablename__ = "password_reset_tokens"

@@ -1,4 +1,5 @@
 """tests for health check and root endpoints"""
+
 from app.core.config import settings
 
 

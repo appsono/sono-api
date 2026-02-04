@@ -1,6 +1,9 @@
 networks:
   sono-net:
     driver: bridge
+  kworb-net:
+    external: true
+    name: sono-kworb_default
 
 services:
   db:
@@ -82,6 +85,7 @@ services:
       dockerfile: Dockerfile
     networks:
       - sono-net
+      - kworb-net
     ports:
       - "${API_PORT:-8000}:8000"
     environment:
@@ -109,6 +113,11 @@ services:
       API_V1_STR: ${API_V1_STR}
       ALGORITHM: ${ALGORITHM}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
+      KWORB_DB_HOST: ${KWORB_DB_HOST}
+      KWORB_DB_PORT: ${KWORB_DB_PORT}
+      KWORB_DB_USER: ${KWORB_DB_USER}
+      KWORB_DB_PASSWORD: ${KWORB_DB_PASSWORD}
+      KWORB_DB_NAME: ${KWORB_DB_NAME}
     depends_on:
       db:
         condition: service_healthy
