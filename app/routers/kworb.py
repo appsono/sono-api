@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from typing import Generator, List
+from typing import Generator, List, Optional
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -35,26 +35,26 @@ def get_kworb_db() -> Generator[Session, None, None]:
 class TopStreamedArtist(BaseModel):
     rank: int
     artist: str
-    streams: float
-    daily: float
-    as_lead: float
-    solo: float
-    as_feature: float
+    streams: Optional[float] = None
+    daily: Optional[float] = None
+    as_lead: Optional[float] = None
+    solo: Optional[float] = None
+    as_feature: Optional[float] = None
 
 
 class MonthlyListeners(BaseModel):
     rank: int
     artist: str
-    listeners: int
-    peak: int
-    peak_listeners: int
+    listeners: Optional[int] = None
+    peak: Optional[int] = None
+    peak_listeners: Optional[int] = None
 
 
 class TopSongStreams(BaseModel):
     rank: int
     artist_and_title: str
-    streams: int
-    daily: float
+    streams: Optional[int] = None
+    daily: Optional[float] = None
 
 
 @router.get("/top-streamed-artists", response_model=List[TopStreamedArtist])
