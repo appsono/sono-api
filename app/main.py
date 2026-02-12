@@ -13,6 +13,8 @@ from app.core.config import settings
 from .routers import users, admin, audio, collections, announcements, kworb
 from .core.storage import create_minio_bucket_if_not_exists
 from .core.scheduler import init_scheduler, start_scheduler, shutdown_scheduler
+from .routers import users, admin, audio, collections, announcements, kworb, maintenance
+from .middleware.maintenance import maintenance_mode_middleware
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -33,6 +35,7 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
+app.middleware("http")(maintenance_mode_middleware)
 
 # security headers
 @app.middleware("http")
@@ -79,6 +82,7 @@ api_router = APIRouter(prefix=settings.API_V1_STR)
 
 api_router.include_router(users.router)
 api_router.include_router(admin.router)
+api_router.include_router(maintenance.router)
 api_router.include_router(audio.router)
 api_router.include_router(collections.router)
 api_router.include_router(announcements.router)

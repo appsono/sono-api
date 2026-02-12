@@ -851,6 +851,148 @@ Authorization: Bearer <admin_token>
 
 ---
 
+## Admin - Maintenance Mode
+
+### Get Maintenance Status
+```bash
+GET /api/v1/admin/maintenance/status
+```
+
+**Public endpoint - no authentication required**
+
+**Response:**
+```json
+{
+  "enabled": false,
+  "message": "Service temporarily unavailable for maintenance"
+}
+```
+
+### Enable Maintenance Mode
+```bash
+POST /api/v1/admin/maintenance/enable?message=Custom%20message
+Authorization: Bearer <admin_token>
+```
+
+**Query Parameters:**
+- `message` (optional): Custom maintenance message (max 200 chars)
+
+**Response:**
+```json
+{
+  "enabled": true,
+  "message": "Database upgrade in progress - back at 3pm"
+}
+```
+
+**Examples:**
+
+Default message:
+```bash
+curl -X POST "http://localhost:8000/api/v1/admin/maintenance/enable" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Custom message:
+```bash
+curl -X POST "http://localhost:8000/api/v1/admin/maintenance/enable?message=Scheduled%20maintenance%20-%20back%20at%203pm" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Disable Maintenance Mode
+```bash
+POST /api/v1/admin/maintenance/disable
+Authorization: Bearer <admin_token>
+```
+
+**Response:**
+```json
+{
+  "enabled": false,
+  "message": "Service temporarily unavailable for maintenance"
+}
+```
+
+**Example:**
+```bash
+curl -X POST "http://localhost:8000/api/v1/admin/maintenance/disable" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Toggle Maintenance Mode
+```bash
+POST /api/v1/admin/maintenance/toggle
+Authorization: Bearer <admin_token>
+Content-Type: application/json
+
+{
+  "enabled": true,
+  "message": "Optional custom message"
+}
+```
+
+**Request Body:**
+```json
+{
+  "enabled": true,
+  "message": "Database upgrade - back at 15:00 UTC"
+}
+```
+
+**Response:**
+```json
+{
+  "enabled": true,
+  "message": "Database upgrade - back at 15:00 UTC"
+}
+```
+
+**Examples:**
+
+Enable with custom message:
+```bash
+curl -X POST "http://localhost:8000/api/v1/admin/maintenance/toggle" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "enabled": true,
+    "message": "Server migration in progress"
+  }'
+```
+
+Disable:
+```bash
+curl -X POST "http://localhost:8000/api/v1/admin/maintenance/toggle" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"enabled": false}'
+```
+
+### Maintenance Mode Behavior
+
+When maintenance mode is **enabled**:
+- `/health` endpoint continues to work (200 OK)
+- `/api/v1/admin/maintenance/*` endpoints continue to work
+- All other endpoints return `503 Service Unavailable`
+
+**503 Response Example:**
+```json
+{
+  "detail": "Database upgrade in progress - back at 3pm",
+  "status": "maintenance",
+  "retry_after": 3600
+}
+```
+
+**Response Headers:**
+```
+HTTP/1.1 503 Service Unavailable
+Retry-After: 3600
+Content-Type: application/json
+```
+
+---
+
 ## Response Formats
 
 ### Success Response
