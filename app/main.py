@@ -10,10 +10,9 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
 from app.core.config import settings
-from .routers import users, admin, audio, collections, announcements, kworb
+from .routers import users, admin, audio, collections, announcements, kworb, maintenance
 from .core.storage import create_minio_bucket_if_not_exists
 from .core.scheduler import init_scheduler, start_scheduler, shutdown_scheduler
-from .routers import users, admin, audio, collections, announcements, kworb, maintenance
 from .middleware.maintenance import maintenance_mode_middleware
 
 limiter = Limiter(key_func=get_remote_address)

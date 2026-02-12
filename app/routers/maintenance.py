@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Security
+from fastapi import APIRouter, Security
 from pydantic import BaseModel, Field
 from typing import Optional
 from app.core.security import get_current_active_superuser
