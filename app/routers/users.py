@@ -467,7 +467,7 @@ def verify_reset_token(verify_request: schemas.PasswordResetVerify, db: Session 
     if not reset_token.is_valid:
         raise HTTPException(status_code=400, detail="This reset link has already been used")
 
-    if reset_token.expires_at < datetime.now(timezone.utc):
+    if reset_token.expires_at < datetime.utcnow():
         raise HTTPException(status_code=400, detail="This reset link has expired. Please request a new one.")
 
     return schemas.PasswordResetResponse(message="Reset token is valid", success=True)
@@ -486,7 +486,7 @@ def reset_password(request: Request, reset_confirm: schemas.PasswordResetConfirm
         crud.create_audit_log(db=db, action="password_reset.failed", user_id=reset_token.user_id, details="Attempted to use already-used reset token", success=False)
         raise HTTPException(status_code=400, detail="This reset link has already been used")
 
-    if reset_token.expires_at < datetime.now(timezone.utc):
+    if reset_token.expires_at < datetime.utcnow():
         crud.create_audit_log(db=db, action="password_reset.failed", user_id=reset_token.user_id, details="Attempted to use expired reset token", success=False)
         raise HTTPException(status_code=400, detail="This reset link has expired. Please request a new one.")
 
