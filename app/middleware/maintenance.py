@@ -1,7 +1,6 @@
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
 from jose import JWTError, jwt
-from sqlalchemy.orm import Session
 from app.core.maintenance_state import maintenance_state
 from app.core.config import settings
 from app.database import SessionLocal
