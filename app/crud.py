@@ -389,7 +389,7 @@ def user_can_edit_collection(db: Session, collection_id: int, user_id: int) -> T
     if not collection:
         return False, "Collection not found"
 
-    # wwner can always edit
+    # owner can always edit
     if collection.owner_id == user_id:
         return True, "owner"
 
@@ -522,9 +522,22 @@ def cleanup_expired_tokens(db: Session):
     db.commit()
     return deleted
 
-
+# revoke all user tokens
 def revoke_all_user_tokens(db: Session, user_id: int, reason: str = "password_change"):
-    pass
+    """Invalidate all tokens for a user by updating token_invalidated_at.
+    
+    Any token issued before this timestamp will be rejected by get_current_user().
+    This is called on password change, password reset, and admin-forced logout.
+    """
+    from datetime import datetime, timezone
+
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if user:
+        user.token_invalidated_at = datetime.now(timezone.utc)
+        db.commit()
+
+        from app.core.security import audit_log
+        audit_log(f"All tokens invalidated for user {user_id}. Reason: {reason}")
 
 
 # ============= AUDIT LOG CRUD =============

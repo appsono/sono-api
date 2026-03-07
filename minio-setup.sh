@@ -58,10 +58,4 @@ EOF
 echo "Setting bucket policy to public read for profile pictures..."
 /usr/bin/mc anonymous set public minio/profile-pictures
 
-echo "Setting bucket policy to public read for audio files..."
-/usr/bin/mc anonymous set public minio/audio-files
-
-echo "Setting bucket policy to public read for cover art..."
-/usr/bin/mc anonymous set public minio/cover-art
-
-echo "MinIO setup complete with both profile-pictures and audio-files buckets."
+echo "MinIO setup complete."

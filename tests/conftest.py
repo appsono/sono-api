@@ -121,6 +121,38 @@ def test_superuser(db_session):
 
 
 @pytest.fixture(scope="function")
+def second_test_user(db_session):
+    """create a second test user for multi-user tests"""
+    user = models.User(
+        email="second@example.com",
+        username="seconduser",
+        hashed_password=Hasher.get_password_hash("Second123!@#"),
+        is_active=True,
+        is_superuser=False,
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    return user
+
+
+@pytest.fixture(scope="function")
+def inactive_test_user(db_session):
+    """create an inactive/disabled test user"""
+    user = models.User(
+        email="inactive@example.com",
+        username="inactiveuser",
+        hashed_password=Hasher.get_password_hash("Inactive123!@#"),
+        is_active=False,
+        is_superuser=False,
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    return user
+
+
+@pytest.fixture(scope="function")
 def auth_headers(client, test_user):
     """get authentication headers for test user"""
     response = client.post(
@@ -132,6 +164,24 @@ def auth_headers(client, test_user):
     )
     token = response.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture(scope="function")
+def auth_tokens(client, test_user):
+    """get both access and refresh tokens for test user"""
+    response = client.post(
+        f"{settings.API_V1_STR}/users/token",
+        data={
+            "username": "testuser",
+            "password": "Test123!@#",
+        },
+    )
+    data = response.json()
+    return {
+        "access_token": data["access_token"],
+        "refresh_token": data["refresh_token"],
+        "headers": {"Authorization": f"Bearer {data['access_token']}"},
+    }
 
 
 @pytest.fixture(scope="function")

@@ -28,6 +28,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan, title="Sono API", version="1.0.0", docs_url=None, redoc_url=None)
+#app = FastAPI(lifespan=lifespan, title="Sono API", version="1.0.0") # FOR DEV
 
 # rate limiting
 app.state.limiter = limiter
@@ -53,10 +54,8 @@ app.add_middleware(
     allow_origins=[
         "https://sono.wtf",
         "https://www.sono.wtf",
-        "sono_api",
-        "sono_api:8000",
-        "localhost",
-        "localhost:3001",
+        "http://localhost:3001",
+        "http://localhost:8000",
     ],
     allow_origin_regex=r"https://.*\.sono\.wtf",
     allow_credentials=True,

@@ -59,8 +59,8 @@ def create_user(request: Request, user: schemas.UserCreate, db: Session = Depend
 
 
 @router.get("/", response_model=List[schemas.UserPublic])
-async def read_users(skip: int = 0, limit: int = 100, current_user: models.User = Depends(get_current_active_superuser)):
-    users = crud.get_users(skip=skip, limit=limit)
+async def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_active_superuser)):
+    users = crud.get_users(db, skip=skip, limit=limit)
     return users
 
 
@@ -161,13 +161,33 @@ def refresh_token(request: Request, token_request_body: schemas.RefreshTokenRequ
     if user is None:
         raise credentials_exception
 
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account has been deactivated",
+        )
+
+    # check token_invalidated_at for refresh tokens too
+    if user.token_invalidated_at is not None:
+        token_iat = payload.get("iat")
+        if token_iat:
+            token_issued_at = datetime.fromtimestamp(token_iat, tz=timezone.utc)
+            # normalize: SQLite strips tzinfo, Postgres keeps it
+            invalidated_at = user.token_invalidated_at
+            if invalidated_at.tzinfo is None:
+                invalidated_at = invalidated_at.replace(tzinfo=timezone.utc)
+            if token_issued_at < invalidated_at:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Token has been invalidated. Please log in again.",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+
     if old_jti:
         old_expires = payload.get("exp")
         if old_expires:
-            from datetime import datetime
-
             crud.add_revoked_token(
-                db=db, jti=old_jti, token=token_request_body.refresh_token, token_type="refresh", user_id=user.id, expires_at=datetime.fromtimestamp(old_expires), reason="token_refresh"
+                db=db, jti=old_jti, token=token_request_body.refresh_token, token_type="refresh", user_id=user.id, expires_at=datetime.fromtimestamp(old_expires, tz=timezone.utc), reason="token_refresh"
             )
 
     new_access_token, access_jti, access_expires = create_access_token(data={"sub": user.username})
@@ -244,11 +264,8 @@ def logout(token_request_body: schemas.RefreshTokenRequest, current_user: models
         expires = payload.get("exp")
 
         if jti and expires:
-            from datetime import datetime
+            crud.add_revoked_token(db=db, jti=jti, token=token_request_body.refresh_token, token_type="refresh", user_id=current_user.id, expires_at=datetime.fromtimestamp(expires, tz=timezone.utc), reason="logout")
 
-            crud.add_revoked_token(db=db, jti=jti, token=token_request_body.refresh_token, token_type="refresh", user_id=current_user.id, expires_at=datetime.fromtimestamp(expires), reason="logout")
-
-        # Log logout
         crud.create_audit_log(db=db, action="logout.success", user_id=current_user.id, details=f"User logged out: {current_user.username}", success=True)
 
         return {"message": "Successfully logged out"}
@@ -262,8 +279,6 @@ def logout(token_request_body: schemas.RefreshTokenRequest, current_user: models
 
 @router.post("/me/request-deletion")
 def request_account_deletion(deletion_request: schemas.DeletionRequest, current_user: models.User = Depends(get_current_active_user), db: Session = Depends(get_db)):
-    from datetime import datetime, timedelta, timezone
-
     existing_request = crud.get_deletion_request(db, current_user.id)
     if existing_request:
         raise HTTPException(status_code=400, detail=f"Deletion already requested. Scheduled for {existing_request.scheduled_deletion_at.isoformat()}. Use /users/me/cancel-deletion to undo.")
@@ -311,8 +326,6 @@ def get_deletion_status(current_user: models.User = Depends(get_current_active_u
     deletion_request = crud.get_deletion_request(db, current_user.id)
 
     if deletion_request:
-        from datetime import datetime
-
         time_remaining = (deletion_request.scheduled_deletion_at - datetime.now(timezone.utc)).total_seconds()
         days_remaining = time_remaining / 86400
 
@@ -467,7 +480,7 @@ def verify_reset_token(verify_request: schemas.PasswordResetVerify, db: Session 
     if not reset_token.is_valid:
         raise HTTPException(status_code=400, detail="This reset link has already been used")
 
-    if reset_token.expires_at < datetime.utcnow():
+    if reset_token.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="This reset link has expired. Please request a new one.")
 
     return schemas.PasswordResetResponse(message="Reset token is valid", success=True)
@@ -486,7 +499,7 @@ def reset_password(request: Request, reset_confirm: schemas.PasswordResetConfirm
         crud.create_audit_log(db=db, action="password_reset.failed", user_id=reset_token.user_id, details="Attempted to use already-used reset token", success=False)
         raise HTTPException(status_code=400, detail="This reset link has already been used")
 
-    if reset_token.expires_at < datetime.utcnow():
+    if reset_token.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
         crud.create_audit_log(db=db, action="password_reset.failed", user_id=reset_token.user_id, details="Attempted to use expired reset token", success=False)
         raise HTTPException(status_code=400, detail="This reset link has expired. Please request a new one.")
 
@@ -497,6 +510,8 @@ def reset_password(request: Request, reset_confirm: schemas.PasswordResetConfirm
     user.hashed_password = Hasher.get_password_hash(reset_confirm.new_password)
 
     crud.invalidate_all_user_reset_tokens(db, user.id)
+
+    crud.revoke_all_user_tokens(db, user.id, reason="password_reset")
 
     db.commit()
 

@@ -16,7 +16,19 @@ from ..dependencies import get_db, get_current_active_user
 
 router = APIRouter(prefix="/audio", tags=["audio"])
 
-ALLOWED_AUDIO_TYPES = ["audio/mpeg", "audio/mp3", "audio/wav", "audio/wave", "audio/ogg", "audio/m4a", "audio/aac", "audio/flac", "audio/webm", "audio/mp4", "application/octet-stream"]
+
+ALLOWED_AUDIO_TYPES = [
+    "audio/mpeg",
+    "audio/mp3",
+    "audio/wav",
+    "audio/wave",
+    "audio/ogg",
+    "audio/m4a",
+    "audio/aac",
+    "audio/flac",
+    "audio/webm",
+    "audio/mp4",
+]
 
 MAX_AUDIO_SIZE = 50 * 1024 * 1024
 

@@ -3,6 +3,9 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import hashes
 import base64
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class CryptoHandler:
@@ -19,4 +22,6 @@ class CryptoHandler:
 
             return decrypted_bytes.decode("utf-8")
         except Exception as e:
-            raise ValueError(f"Failed to decrypt password: {str(e)}")
+            # log real error server-side, return generic message to client
+            logger.error(f"Password decryption failed: {str(e)}")
+            raise ValueError("Failed to decrypt password")

@@ -47,6 +47,22 @@ async def get_current_user(db: Session = Depends(get_db), token: str = Depends(o
     user = crud.get_user_by_username(db, username=token_data.username)
     if user is None:
         raise credentials_exception
+
+    if user.token_invalidated_at is not None:
+        token_iat = payload.get("iat")
+        if token_iat:
+            token_issued_at = datetime.fromtimestamp(token_iat, tz=timezone.utc)
+            # Normalize: SQLite strips tzinfo, Postgres keeps it
+            invalidated_at = user.token_invalidated_at
+            if invalidated_at.tzinfo is None:
+                invalidated_at = invalidated_at.replace(tzinfo=timezone.utc)
+            if token_issued_at < invalidated_at:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Token has been invalidated. Please log in again.",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+
     return user
 
 
@@ -67,9 +83,10 @@ def get_current_active_superuser(
 def create_access_token(data: dict) -> Tuple[str, str, datetime]:
     """create access token"""
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    now = datetime.now(timezone.utc)
+    expire = now + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     jti = str(uuid.uuid4())
-    to_encode.update({"exp": expire, "token_type": "access", "jti": jti})
+    to_encode.update({"exp": expire, "iat": now, "token_type": "access", "jti": jti})
     token = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return token, jti, expire
 
@@ -77,12 +94,13 @@ def create_access_token(data: dict) -> Tuple[str, str, datetime]:
 def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) -> Tuple[str, str, datetime]:
     """create refresh token"""
     to_encode = data.copy()
+    now = datetime.now(timezone.utc)
     if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
+        expire = now + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES)
+        expire = now + timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES)
     jti = str(uuid.uuid4())
-    to_encode.update({"exp": expire, "token_type": "refresh", "jti": jti})
+    to_encode.update({"exp": expire, "iat": now, "token_type": "refresh", "jti": jti})
     encoded_jwt = jwt.encode(to_encode, settings.REFRESH_TOKEN_SECRET_KEY, algorithm=settings.REFRESH_TOKEN_ALGORITHM)
     return encoded_jwt, jti, expire
 

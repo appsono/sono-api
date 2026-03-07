@@ -30,6 +30,9 @@ class User(Base):
     # timestamp for when user account was created
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
+    # forces a re-login
+    token_invalidated_at = Column(DateTime, nullable=True)
+
     # audio upload limit field
     max_audio_uploads = Column(Integer, default=20)
 
