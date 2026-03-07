@@ -63,6 +63,7 @@ def test_get_nonexistent_audio_file(client, auth_headers):
     )
     assert response.status_code == 404
 
+
 def test_upload_rejects_octet_stream(client, auth_headers):
     fake_exe = BytesIO(b"MZ\x90\x00" + b"\x00" * 100)
     response = client.post(

@@ -5,7 +5,6 @@ from app import crud
 
 
 class TestTokenInvalidation:
-
     def test_revoke_sets_timestamp(self, client, test_user, db_session):
         """revoke_all_user_tokens must set token_invalidated_at on the user"""
         assert test_user.token_invalidated_at is None
@@ -24,19 +23,25 @@ class TestTokenInvalidation:
         old_token = login.json()["access_token"]
 
         # verify it works
-        assert client.get(
-            f"{settings.API_V1_STR}/users/me",
-            headers={"Authorization": f"Bearer {old_token}"},
-        ).status_code == 200
+        assert (
+            client.get(
+                f"{settings.API_V1_STR}/users/me",
+                headers={"Authorization": f"Bearer {old_token}"},
+            ).status_code
+            == 200
+        )
 
         # revoke
         crud.revoke_all_user_tokens(db_session, test_user.id)
 
         # verify it's rejected
-        assert client.get(
-            f"{settings.API_V1_STR}/users/me",
-            headers={"Authorization": f"Bearer {old_token}"},
-        ).status_code == 401
+        assert (
+            client.get(
+                f"{settings.API_V1_STR}/users/me",
+                headers={"Authorization": f"Bearer {old_token}"},
+            ).status_code
+            == 401
+        )
 
     def test_refresh_token_rejected_after_revocation(self, client, test_user, db_session):
         """refresh tokens issued before revocation must be rejected"""
@@ -48,10 +53,13 @@ class TestTokenInvalidation:
 
         crud.revoke_all_user_tokens(db_session, test_user.id)
 
-        assert client.post(
-            f"{settings.API_V1_STR}/users/token/refresh",
-            json={"refresh_token": old_refresh},
-        ).status_code == 401
+        assert (
+            client.post(
+                f"{settings.API_V1_STR}/users/token/refresh",
+                json={"refresh_token": old_refresh},
+            ).status_code
+            == 401
+        )
 
     def test_new_login_works_after_revocation(self, client, test_user, db_session):
         """logging in after revocation should produce valid tokens"""
@@ -64,14 +72,16 @@ class TestTokenInvalidation:
         )
         assert login.status_code == 200
 
-        assert client.get(
-            f"{settings.API_V1_STR}/users/me",
-            headers={"Authorization": f"Bearer {login.json()['access_token']}"},
-        ).status_code == 200
+        assert (
+            client.get(
+                f"{settings.API_V1_STR}/users/me",
+                headers={"Authorization": f"Bearer {login.json()['access_token']}"},
+            ).status_code
+            == 200
+        )
 
 
 class TestResetTokenTimezones:
-
     def test_expired_token_rejected(self, client, test_user, db_session):
         """expired reset tokens must be rejected"""
         from app import models
@@ -135,7 +145,6 @@ class TestResetTokenTimezones:
 
 
 class TestInactiveUserTokenRefresh:
-
     def test_disabled_user_cannot_refresh(self, client, test_user, db_session):
         """refresh must fail for disabled users"""
         login = client.post(
@@ -229,7 +238,6 @@ class TestAudioUploadValidation:
 
 
 class TestListUsersEndpoint:
-
     def test_admin_can_list_users(self, client, admin_auth_headers, test_user):
         """admin listing users should return a list (was crashing)"""
         resp = client.get(
@@ -256,7 +264,6 @@ class TestListUsersEndpoint:
 
 
 class TestPasswordResetSessionInvalidation:
-
     def test_old_token_dies_after_reset(self, client, test_user, db_session):
         """after password reset, old access tokens must stop working"""
         from app import models
@@ -346,7 +353,6 @@ class TestPasswordResetSessionInvalidation:
 
 
 class TestCryptoErrorHandling:
-
     def test_bad_encrypted_password_gives_generic_error(self, client, test_user):
         """invalid encrypted password should return generic error, not internals"""
         response = client.post(

@@ -28,7 +28,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan, title="Sono API", version="1.0.0", docs_url=None, redoc_url=None)
-#app = FastAPI(lifespan=lifespan, title="Sono API", version="1.0.0") # FOR DEV
+# app = FastAPI(lifespan=lifespan, title="Sono API", version="1.0.0") # FOR DEV
 
 # rate limiting
 app.state.limiter = limiter
@@ -36,6 +36,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
 app.middleware("http")(maintenance_mode_middleware)
+
 
 # security headers
 @app.middleware("http")

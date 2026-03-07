@@ -187,7 +187,13 @@ def refresh_token(request: Request, token_request_body: schemas.RefreshTokenRequ
         old_expires = payload.get("exp")
         if old_expires:
             crud.add_revoked_token(
-                db=db, jti=old_jti, token=token_request_body.refresh_token, token_type="refresh", user_id=user.id, expires_at=datetime.fromtimestamp(old_expires, tz=timezone.utc), reason="token_refresh"
+                db=db,
+                jti=old_jti,
+                token=token_request_body.refresh_token,
+                token_type="refresh",
+                user_id=user.id,
+                expires_at=datetime.fromtimestamp(old_expires, tz=timezone.utc),
+                reason="token_refresh",
             )
 
     new_access_token, access_jti, access_expires = create_access_token(data={"sub": user.username})
@@ -264,7 +270,9 @@ def logout(token_request_body: schemas.RefreshTokenRequest, current_user: models
         expires = payload.get("exp")
 
         if jti and expires:
-            crud.add_revoked_token(db=db, jti=jti, token=token_request_body.refresh_token, token_type="refresh", user_id=current_user.id, expires_at=datetime.fromtimestamp(expires, tz=timezone.utc), reason="logout")
+            crud.add_revoked_token(
+                db=db, jti=jti, token=token_request_body.refresh_token, token_type="refresh", user_id=current_user.id, expires_at=datetime.fromtimestamp(expires, tz=timezone.utc), reason="logout"
+            )
 
         crud.create_audit_log(db=db, action="logout.success", user_id=current_user.id, details=f"User logged out: {current_user.username}", success=True)
 

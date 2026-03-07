@@ -8,7 +8,7 @@ from app.core.config import settings
 
 router = APIRouter(prefix="/kworb", tags=["kworb"])
 
-#create engine once at module level for connection pooling
+# create engine once at module level for connection pooling
 _kworb_engine = None
 
 
@@ -120,7 +120,7 @@ def get_top_songs(
 @router.get("/artist/{artist_name}")
 def search_artist(artist_name: str, db: Session = Depends(get_kworb_db)):
     """Search for an artist across all data"""
-    #search in top streamed artists
+    # search in top streamed artists
     streamed = db.execute(
         text("""
             SELECT "Rank", "Artist", "Streams", "Daily", "As lead", "Solo", "As feature"
@@ -131,7 +131,7 @@ def search_artist(artist_name: str, db: Session = Depends(get_kworb_db)):
         {"name": f"%{artist_name}%"},
     ).fetchall()
 
-    #search in monthly listeners
+    # search in monthly listeners
     listeners = db.execute(
         text("""
             SELECT "Rank", "Artist", "Listeners", "Peak", "PkListeners"
@@ -142,7 +142,7 @@ def search_artist(artist_name: str, db: Session = Depends(get_kworb_db)):
         {"name": f"%{artist_name}%"},
     ).fetchall()
 
-    #search in top songs
+    # search in top songs
     songs = db.execute(
         text("""
             SELECT "Rank", "Artist and Title", "Streams", "Daily"
