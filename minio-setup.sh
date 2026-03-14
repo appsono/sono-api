@@ -55,7 +55,7 @@ EOF
 
 /usr/bin/mc admin policy create minio audio-files-policy /tmp/audio-policy.json
 
-echo "Setting bucket policy to public read for profile pictures..."
+echo "Setting bucket policy to public read for profile pictures ONLY..."
 /usr/bin/mc anonymous set public minio/profile-pictures
 
 echo "MinIO setup complete."

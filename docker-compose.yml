@@ -1,9 +1,9 @@
 networks:
   sono-net:
     driver: bridge
-  kworb-net:
-    external: true
-    name: sono-kworb_default
+  #kworb-net:
+  #  external: true
+  #  name: sono-kworb_default
 
 services:
   db:
@@ -85,7 +85,7 @@ services:
       dockerfile: Dockerfile
     networks:
       - sono-net
-      - kworb-net
+    #  - kworb-net
     ports:
       - "${API_PORT:-8000}:8000"
     environment:
