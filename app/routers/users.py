@@ -334,7 +334,7 @@ def get_deletion_status(current_user: models.User = Depends(get_current_active_u
     deletion_request = crud.get_deletion_request(db, current_user.id)
 
     if deletion_request:
-        time_remaining = (deletion_request.scheduled_deletion_at - datetime.now(timezone.utc)).total_seconds()
+        time_remaining = (deletion_request.scheduled_deletion_at.replace(tzinfo=timezone.utc) - datetime.now(timezone.utc)).total_seconds()
         days_remaining = time_remaining / 86400
 
         return {
